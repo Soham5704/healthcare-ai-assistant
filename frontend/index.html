@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare AI Assistant</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 50px; }
+        .chat-container { width: 100%; max-width: 600px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; }
+        .header { text-align: center; color: #2c3e50; margin-bottom: 20px; }
+        #chat-box { height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+        .message { margin-bottom: 15px; padding: 10px; border-radius: 5px; line-height: 1.4; }
+        .user-msg { background: #007bff; color: white; text-align: right; margin-left: 20%; }
+        .ai-msg { background: #e9ecef; color: #333; margin-right: 20%; }
+        .sources { font-size: 0.8em; color: #666; margin-top: 5px; font-style: italic; }
+        .input-area { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; outline: none; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <h2 class="header">Mindbowser AI Assistant</h2>
+    <div id="chat-box">
+        <div class="message ai-msg">Hello! I am your healthcare assistant. How can I help you today?</div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Ask about telehealth policies or appointments..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    async function sendMessage() {
+        const inputField = document.getElementById("user-input");
+        const message = inputField.value.trim();
+        if (!message) return;
+
+        const chatBox = document.getElementById("chat-box");
+        
+        // Add User Message
+        chatBox.innerHTML += `<div class="message user-msg">${message}</div>`;
+        inputField.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Call the FastAPI Backend
+        try {
+            const response = await fetch("http://127.0.0.1:8000/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: message })
+            });
+            
+            const data = await response.json();
+            let aiHtml = `<div class="message ai-msg"><strong>AI:</strong> ${data.answer}`;
+            
+            // Add Sources if available
+            if (data.sources && data.sources.length > 0) {
+                aiHtml += `<div class="sources">Sources: ${data.sources.map(s => s.document).join(", ")}</div>`;
+            }
+            aiHtml += `</div>`;
+            
+            chatBox.innerHTML += aiHtml;
+        } catch (error) {
+            chatBox.innerHTML += `<div class="message ai-msg" style="color:red;">Error connecting to the server. Is it running?</div>`;
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter") sendMessage();
+    }
+</script>
+
+</body>
+</html>
